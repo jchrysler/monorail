@@ -1,0 +1,31 @@
+You are summarizing old coding session logs for archival.
+
+Given these detailed session logs:
+
+<sessions>
+{sessions}
+</sessions>
+
+Create a condensed summary that preserves:
+1. Key decisions made
+2. Major features completed
+3. Important context for future sessions
+4. Unresolved issues
+
+Keep it under {max_tokens} tokens.
+
+Format:
+
+**Summary:** [1-2 sentence overview]
+
+**Completed:**
+- [major item]
+...
+
+**Key decisions:**
+- [decision]
+...
+
+**Carried forward:**
+- [unresolved item if any]
+...

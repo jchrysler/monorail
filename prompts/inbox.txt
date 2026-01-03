@@ -1,0 +1,25 @@
+You are processing notes from a developer's inbox for Music Man.
+
+Current inbox notes:
+<inbox>
+{inbox_content}
+</inbox>
+
+Current project states:
+<projects>
+{projects_summary}
+</projects>
+
+For each inbox note, determine:
+1. Which project(s) it applies to (or "global")
+2. Type: priority, context, completion, instruction, or observation
+3. How to incorporate into project notes
+
+Respond:
+
+NOTE: "[original note]"
+APPLIES_TO: [project name or "global"]
+TYPE: [type]
+ACTION: [what to do]
+
+Repeat for each note.
