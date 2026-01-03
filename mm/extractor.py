@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import time
 import re
+import sys
+import io
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 
-import google.generativeai as genai
+# Suppress stderr during google imports (they print noisy warnings)
+_original_stderr = sys.stderr
+sys.stderr = io.StringIO()
+try:
+    import google.generativeai as genai
+finally:
+    sys.stderr = _original_stderr
 
 from .config import get_config, PROMPTS_DIR
 

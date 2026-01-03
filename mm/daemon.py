@@ -4,17 +4,23 @@ from __future__ import annotations
 
 import os
 import sys
+import io
 import time
 import signal
 from pathlib import Path
 from datetime import datetime
 
-from rich.console import Console
-
-from .config import DAEMON_PID, DAEMON_LOG, get_config, MM_HOME
-from .watcher import Watcher
-from .extractor import Extractor
-from .notes import update_notes, get_current_task, get_last_session_time
+# Suppress stderr during imports
+_stderr = sys.stderr
+sys.stderr = io.StringIO()
+try:
+    from rich.console import Console
+    from .config import DAEMON_PID, DAEMON_LOG, get_config, MM_HOME
+    from .watcher import Watcher
+    from .extractor import Extractor
+    from .notes import update_notes, get_current_task, get_last_session_time
+finally:
+    sys.stderr = _stderr
 
 console = Console()
 
@@ -110,21 +116,42 @@ def show_status(project: str = None):
 
 def _find_projects(config) -> list[dict]:
     """Find all projects with pool/.session.log files."""
+    import fnmatch
+
     projects = []
+    ignore_patterns = config.ignore_paths
+
+    def should_ignore(path_str: str) -> bool:
+        """Check if path matches any ignore pattern."""
+        for pattern in ignore_patterns:
+            if fnmatch.fnmatch(path_str, pattern):
+                return True
+            # Also check if any parent matches
+            if "/Library/" in path_str or "/.Trash/" in path_str:
+                return True
+        return False
 
     for watch_path in config.watch_paths:
         path = Path(watch_path).expanduser()
         if not path.exists():
             continue
 
-        for session_log in path.rglob("pool/.session.log"):
-            project_path = session_log.parent.parent
-            projects.append({
-                "name": project_path.name,
-                "path": project_path,
-                "current_task": get_current_task(project_path) or "-",
-                "last_active": get_last_session_time(project_path),
-            })
+        try:
+            # Use iterdir + manual recursion to handle errors gracefully
+            for item in path.iterdir():
+                if should_ignore(str(item)):
+                    continue
+                if item.is_dir():
+                    pool_log = item / "pool" / ".session.log"
+                    if pool_log.exists():
+                        projects.append({
+                            "name": item.name,
+                            "path": item,
+                            "current_task": get_current_task(item) or "-",
+                            "last_active": get_last_session_time(item),
+                        })
+        except (PermissionError, OSError):
+            continue
 
     # Sort by last active
     projects.sort(key=lambda p: p["last_active"] or datetime.min, reverse=True)

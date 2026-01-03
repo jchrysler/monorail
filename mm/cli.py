@@ -2,17 +2,33 @@
 
 from __future__ import annotations
 
-import click
-from pathlib import Path
-from rich.console import Console
+# Suppress ALL stderr during imports - some deps are very noisy
+import sys
+import io
+import os
 
-from .config import (
-    Config,
-    MM_HOME,
-    PROMPTS_DIR,
-    ensure_mm_home,
-    get_config,
-)
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+
+_original_stderr = sys.stderr
+sys.stderr = io.StringIO()
+
+try:
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    import click
+    from pathlib import Path
+    from rich.console import Console
+
+    from .config import (
+        Config,
+        MM_HOME,
+        PROMPTS_DIR,
+        ensure_mm_home,
+        get_config,
+    )
+finally:
+    sys.stderr = _original_stderr
 
 console = Console()
 
