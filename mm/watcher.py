@@ -33,6 +33,36 @@ def generate_session_id() -> str:
     return f"{chars}-{timestamp}"
 
 
+def truncate_log(log_path: Path, max_size_kb: int = 50):
+    """Truncate log file to keep only the last max_size_kb of content.
+
+    Called after successful extraction to prevent logs from growing forever.
+    """
+    try:
+        if not log_path.exists():
+            return
+
+        max_bytes = max_size_kb * 1024
+        file_size = log_path.stat().st_size
+
+        if file_size <= max_bytes:
+            return  # Already under limit
+
+        # Read the last max_bytes of the file
+        with open(log_path, "rb") as f:
+            f.seek(-max_bytes, 2)  # Seek from end
+            # Find the start of the next line to avoid cutting mid-line
+            f.readline()  # Skip partial line
+            remaining = f.read()
+
+        # Write back the truncated content
+        with open(log_path, "wb") as f:
+            f.write(remaining)
+
+    except (OSError, IOError):
+        pass  # Don't crash on truncation errors
+
+
 class SessionLogHandler(FileSystemEventHandler):
     """Handle changes to .session.log files."""
 

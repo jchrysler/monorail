@@ -40,6 +40,7 @@ DEFAULT_CONFIG = {
     },
     "max_sessions_before_archive": 20,
     "archive_summary_max_tokens": 500,
+    "log_max_size_kb": 50,  # Truncate .session.log after extraction to this size
     "ignore_paths": [
         "**/node_modules/**",
         "**/.git/**",
@@ -117,6 +118,10 @@ class Config:
     @property
     def ignore_paths(self) -> list[str]:
         return self._config.get("ignore_paths", [])
+
+    @property
+    def log_max_size_kb(self) -> int:
+        return self._config.get("log_max_size_kb", 50)
 
 
 def ensure_mm_home():

@@ -16,7 +16,7 @@ sys.stderr = io.StringIO()
 try:
     from rich.console import Console
     from .config import DAEMON_PID, DAEMON_LOG, get_config, MM_HOME
-    from .watcher import Watcher
+    from .watcher import Watcher, truncate_log
     from .extractor import Extractor
     from .notes import update_notes, get_current_task, get_last_session_time
 finally:
@@ -212,6 +212,9 @@ def _run_daemon_loop():
 
         if result:
             update_notes(project_path, session_id, result)
+            # Truncate log to prevent it from growing forever
+            log_path = project_path / "pool" / ".session.log"
+            truncate_log(log_path, config.log_max_size_kb)
             print(f"[{timestamp}] Updated {project_path.name}/pool/mm-notes.md")
 
     def on_session_end(project_path: Path, session_id: str):

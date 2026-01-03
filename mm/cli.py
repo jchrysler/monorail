@@ -87,6 +87,83 @@ mm-init-project() {
     console.print("\n[green]Music Man initialized![/green] Run [bold]mm watch[/bold] to start the dashboard.")
 
 
+SESSION_CONTEXT_SECTION = """
+## Session Context
+Check pool/mm-notes.md for recent session history. If the last session was recent and relevant, use it for continuity. If it's stale or irrelevant to your current task, ignore it.
+"""
+
+
+@main.command("init-project")
+def init_project():
+    """Initialize current directory for Music Man tracking."""
+    import os
+    cwd = Path.cwd()
+    pool_dir = cwd / "pool"
+
+    # 1. Create pool/ directory
+    pool_dir.mkdir(exist_ok=True)
+    console.print(f"  [green]Created[/green] pool/")
+
+    # 2. Add pool/ to .gitignore
+    gitignore = cwd / ".gitignore"
+    if gitignore.exists():
+        content = gitignore.read_text()
+        if "pool/" not in content and "pool\n" not in content:
+            with open(gitignore, "a") as f:
+                f.write("\n# Music Man session logs\npool/\n")
+            console.print(f"  [green]Updated[/green] .gitignore")
+        else:
+            console.print(f"  [yellow]Skipped[/yellow] .gitignore (pool/ already present)")
+    else:
+        gitignore.write_text("# Music Man session logs\npool/\n")
+        console.print(f"  [green]Created[/green] .gitignore")
+
+    # 3. Update CLAUDE.md if it exists
+    claude_md = cwd / "CLAUDE.md"
+    if claude_md.exists():
+        content = claude_md.read_text()
+        if "## Session Context" not in content:
+            with open(claude_md, "a") as f:
+                f.write(SESSION_CONTEXT_SECTION)
+            console.print(f"  [green]Updated[/green] CLAUDE.md")
+        else:
+            console.print(f"  [yellow]Skipped[/yellow] CLAUDE.md (Session Context already present)")
+
+    # 4. Update agents.md if it exists
+    agents_md = cwd / "agents.md"
+    if agents_md.exists():
+        content = agents_md.read_text()
+        if "## Session Context" not in content:
+            with open(agents_md, "a") as f:
+                f.write(SESSION_CONTEXT_SECTION)
+            console.print(f"  [green]Updated[/green] agents.md")
+        else:
+            console.print(f"  [yellow]Skipped[/yellow] agents.md (Session Context already present)")
+
+    # 5. Create empty mm-notes.md
+    notes_file = pool_dir / "mm-notes.md"
+    if not notes_file.exists():
+        project_name = cwd.name
+        notes_file.write_text(f"""# mm notes
+_Project: {project_name}_
+_Last updated: never_
+
+## Active Context
+
+**Current task:** Not set
+**Blockers:** None
+**Priority notes:** None
+
+## Session Log
+
+""")
+        console.print(f"  [green]Created[/green] pool/mm-notes.md")
+    else:
+        console.print(f"  [yellow]Skipped[/yellow] pool/mm-notes.md (already exists)")
+
+    console.print(f"\n[green]Project initialized![/green] Use [bold]cc[/bold] instead of [bold]claude[/bold] to start logging.")
+
+
 @main.command()
 def watch():
     """Start the live TUI dashboard (primary mode)."""

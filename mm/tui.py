@@ -15,7 +15,7 @@ from textual.reactive import reactive
 from rich.text import Text
 
 from .config import get_config
-from .watcher import Watcher
+from .watcher import Watcher, truncate_log
 from .extractor import Extractor
 from .notes import update_notes, get_current_task, get_last_session_time, get_loose_threads
 from .inbox import count_pending
@@ -144,13 +144,15 @@ class MusicManApp(App):
     inbox_count = reactive(0)
 
     def __init__(self):
-        super().__init__()
-        self.config = get_config()
-        self.extractor = Extractor()
+        # Initialize attributes BEFORE super().__init__() because Textual
+        # may call methods that reference them during initialization
         self.watcher: Optional[Watcher] = None
         self.activity_log: Optional[ActivityLog] = None
         self.loose_threads_widget: Optional[LooseThreads] = None
         self.projects_table: Optional[DataTable] = None
+        self.config = get_config()
+        self.extractor = Extractor()
+        super().__init__()
 
     def compose(self) -> ComposeResult:
         """Create child widgets."""
@@ -228,6 +230,9 @@ class MusicManApp(App):
 
             if result:
                 update_notes(project_path, session_id, result)
+                # Truncate log to prevent it from growing forever
+                log_path = project_path / "pool" / ".session.log"
+                truncate_log(log_path, self.config.log_max_size_kb)
                 self.call_from_thread(
                     self.activity_log.add_entry,
                     "✅",
@@ -301,17 +306,25 @@ class MusicManApp(App):
     def _refresh_loose_threads(self):
         """Refresh the loose threads display."""
         all_threads = []
+        skip_folders = {'library', '.trash', 'node_modules', '.git', 'venv'}
 
         for watch_path in self.config.watch_paths:
             path = Path(watch_path).expanduser()
             if not path.exists():
                 continue
 
-            for session_log in path.rglob("pool/.session.log"):
-                project_path = session_log.parent.parent
-                threads = get_loose_threads(project_path, limit=3)
-                for thread in threads:
-                    all_threads.append((project_path.name, thread))
+            try:
+                for item in path.iterdir():
+                    if item.name.lower() in skip_folders or item.name.startswith('.'):
+                        continue
+                    if item.is_dir():
+                        pool_log = item / "pool" / ".session.log"
+                        if pool_log.exists():
+                            threads = get_loose_threads(item, limit=3)
+                            for thread in threads:
+                                all_threads.append((item.name, thread))
+            except (PermissionError, OSError):
+                continue
 
         self.loose_threads_widget.set_threads(all_threads[:5])
 
@@ -319,20 +332,31 @@ class MusicManApp(App):
         """Find all projects with pool/.session.log files."""
         projects = []
 
+        # Folders to skip (case-insensitive check)
+        skip_folders = {'library', '.trash', 'node_modules', '.git', 'venv'}
+
         for watch_path in self.config.watch_paths:
             path = Path(watch_path).expanduser()
             if not path.exists():
                 continue
 
-            for session_log in path.rglob("pool/.session.log"):
-                project_path = session_log.parent.parent
-                projects.append({
-                    "name": project_path.name,
-                    "path": project_path,
-                    "current_task": get_current_task(project_path) or "-",
-                    "last_active": get_last_session_time(project_path),
-                    "tool": "claude",  # TODO: detect from log content
-                })
+            try:
+                # Only scan top-level directories, not recursively
+                for item in path.iterdir():
+                    if item.name.lower() in skip_folders or item.name.startswith('.'):
+                        continue
+                    if item.is_dir():
+                        pool_log = item / "pool" / ".session.log"
+                        if pool_log.exists():
+                            projects.append({
+                                "name": item.name,
+                                "path": item,
+                                "current_task": get_current_task(item) or "-",
+                                "last_active": get_last_session_time(item),
+                                "tool": "claude",
+                            })
+            except (PermissionError, OSError):
+                continue
 
         # Sort by last active
         projects.sort(key=lambda p: p["last_active"] or datetime.min, reverse=True)
