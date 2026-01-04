@@ -54,7 +54,7 @@ Read context/monorail-notes.md at session start for continuity.
 
 No per-project init needed. Just start working.
 
-**Optional:** Run `monorail init-project` to set up a project manually, add to `.gitignore`, etc.
+**Optional:** Run `monorail init-project` to set up a project manually, add `context/` to `.gitignore`, etc. Use `--no-gitignore` if you want to commit your session notes.
 
 ## How It Works
 
@@ -114,7 +114,7 @@ _Last updated: 2025-01-03 14:32_
 | Command | Description |
 |---------|-------------|
 | `monorail init` | First-time setup (prompts for API key) |
-| `monorail init-project` | Initialize current directory for tracking |
+| `monorail init-project` | Initialize current directory (`--no-gitignore` to commit notes) |
 | `monorail start` | Start background daemon |
 | `monorail stop` | Stop daemon |
 | `monorail status` | Show daemon and project status |

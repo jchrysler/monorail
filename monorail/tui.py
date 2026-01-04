@@ -12,6 +12,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Header, Footer, Log, Static
 from textual.containers import Container, Vertical
+from rich.markup import escape
 
 from .config import get_config
 from .watcher import Watcher, CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR
@@ -177,11 +178,11 @@ class MonorailApp(App):
         if active:
             for session in active:
                 vibe_emoji = VIBE_EMOJI.get(session.vibe, "⚪")
-                lines.append(f"{vibe_emoji} [bold]{session.project_name}[/] ({session.session_id[:8]})")
+                lines.append(f"{vibe_emoji} [bold]{escape(session.project_name)}[/] ({session.session_id[:8]})")
                 if session.status:
-                    lines.append(f"   {session.status}")
+                    lines.append(f"   {escape(session.status)}")
                 elif session.stated_goal:
-                    lines.append(f"   Working on: {session.stated_goal[:60]}")
+                    lines.append(f"   Working on: {escape(session.stated_goal[:60])}")
                 lines.append("")
         else:
             lines.append("   [dim]No active sessions[/]")
@@ -195,9 +196,9 @@ class MonorailApp(App):
         if recent:
             for session in recent:
                 time_ago = self._format_time_ago(session.last_update)
-                lines.append(f"[dim]{session.project_name}[/] ({session.session_id[:8]}) - {time_ago}")
+                lines.append(f"[dim]{escape(session.project_name)}[/] ({session.session_id[:8]}) - {time_ago}")
                 if session.left_off_at:
-                    lines.append(f"   Left off: {session.left_off_at[:50]}")
+                    lines.append(f"   Left off: {escape(session.left_off_at[:50])}")
                 lines.append("")
         else:
             lines.append("   [dim]None yet[/]")
@@ -215,7 +216,7 @@ class MonorailApp(App):
 
         if attention:
             for project, issue in attention[:5]:  # Show max 5
-                lines.append(f"   • [bold]{project}[/]: {issue[:50]}")
+                lines.append(f"   • [bold]{escape(project)}[/]: {escape(issue[:50])}")
         else:
             lines.append("   [dim]All clear[/]")
 

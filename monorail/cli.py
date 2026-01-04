@@ -70,7 +70,8 @@ If monorail-notes.md doesn't exist or is stale (>24 hours), skip this and start 
 
 
 @main.command("init-project")
-def init_project():
+@click.option("--no-gitignore", is_flag=True, help="Don't add context/ to .gitignore (if you want to commit session notes)")
+def init_project(no_gitignore: bool):
     """Initialize current directory for Monorail tracking."""
     cwd = Path.cwd()
     context_dir = cwd / "context"
@@ -82,17 +83,18 @@ def init_project():
     from .notes import migrate_project_files
     migrate_project_files(cwd)
 
-    # Add context/ to .gitignore
-    gitignore = cwd / ".gitignore"
-    if gitignore.exists():
-        content = gitignore.read_text()
-        if "context/" not in content and "context\n" not in content:
-            with open(gitignore, "a") as f:
-                f.write("\n# Monorail\ncontext/\n")
-            console.print("Updated .gitignore")
-    else:
-        gitignore.write_text("# Monorail\ncontext/\n")
-        console.print("Created .gitignore")
+    # Add context/ to .gitignore (unless --no-gitignore)
+    if not no_gitignore:
+        gitignore = cwd / ".gitignore"
+        if gitignore.exists():
+            content = gitignore.read_text()
+            if "context/" not in content and "context\n" not in content:
+                with open(gitignore, "a") as f:
+                    f.write("\n# Monorail\ncontext/\n")
+                console.print("Updated .gitignore")
+        else:
+            gitignore.write_text("# Monorail\ncontext/\n")
+            console.print("Created .gitignore")
 
     # Update or create CLAUDE.md
     claude_md = cwd / "CLAUDE.md"
