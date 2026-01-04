@@ -11,9 +11,41 @@ from .config import get_config
 from .extractor import ExtractionResult
 
 
+NOTES_FILENAME = "monorail-notes.md"
+LEGACY_NOTES_FILENAME = "mm-notes.md"
+
+
+def _update_context_instructions(path: Path) -> None:
+    """Update session context references in existing project docs."""
+    if not path.exists():
+        return
+
+    content = path.read_text()
+    updated = content.replace("context/mm-notes.md", "context/monorail-notes.md")
+    updated = updated.replace("mm-notes.md", "monorail-notes.md")
+    updated = updated.replace("music-man", "monorail")
+    updated = updated.replace("Music Man", "Monorail")
+    if updated != content:
+        path.write_text(updated)
+
+
+def migrate_project_files(project_path: Path) -> None:
+    """Migrate legacy project artifacts to Monorail naming."""
+    context_dir = project_path / "context"
+    legacy_notes = context_dir / LEGACY_NOTES_FILENAME
+    new_notes = context_dir / NOTES_FILENAME
+
+    if legacy_notes.exists() and not new_notes.exists():
+        legacy_notes.rename(new_notes)
+
+    _update_context_instructions(project_path / "CLAUDE.md")
+    _update_context_instructions(project_path / "agents.md")
+
+
 def get_notes_path(project_path: Path) -> Path:
-    """Get the path to mm-notes.md for a project."""
-    return project_path / "pool" / "mm-notes.md"
+    """Get the path to monorail-notes.md for a project."""
+    migrate_project_files(project_path)
+    return project_path / "context" / NOTES_FILENAME
 
 
 def update_notes(
@@ -22,7 +54,7 @@ def update_notes(
     extraction: ExtractionResult,
     tool: str = "claude",
 ):
-    """Update mm-notes.md with extraction results."""
+    """Update monorail-notes.md with extraction results."""
     notes_path = get_notes_path(project_path)
     notes_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -55,8 +87,8 @@ def update_notes(
 
 
 def _create_initial_notes(project_name: str) -> str:
-    """Create initial mm-notes.md content."""
-    return f"""# mm notes
+    """Create initial monorail-notes.md content."""
+    return f"""# monorail notes
 _Project: {project_name}_
 _Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M")}_
 
@@ -140,16 +172,33 @@ def _update_timestamp(content: str, timestamp: str) -> str:
 
 def archive_sessions(project: str) -> bool:
     """Archive old sessions for a project."""
-    config = get_config()
+    from .watcher import CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR, decode_claude_project_path, extract_project_from_codex_session
 
-    # Find the project
-    for watch_path in config.watch_paths:
-        notes_path = Path(watch_path) / project / "pool" / "mm-notes.md"
+    # Find the project by searching native session directories
+    def find_project_path(name: str) -> Path | None:
+        if CLAUDE_PROJECTS_DIR.exists():
+            for encoded_folder in CLAUDE_PROJECTS_DIR.iterdir():
+                if not encoded_folder.is_dir():
+                    continue
+                project_path = decode_claude_project_path(encoded_folder.name)
+                if project_path.name == name and project_path.exists():
+                    return project_path
+
+        if CODEX_SESSIONS_DIR.exists():
+            for session_file in CODEX_SESSIONS_DIR.glob("**/*.jsonl"):
+                project_path = extract_project_from_codex_session(session_file)
+                if project_path and project_path.name == name and project_path.exists():
+                    return project_path
+        return None
+
+    project_path = find_project_path(project)
+    if project_path:
+        notes_path = get_notes_path(project_path)
         if notes_path.exists():
             # TODO: Implement archival logic
             # - Count sessions
             # - If > max_sessions_before_archive, summarize old ones
-            # - Move to .mm-archive/ directory
+            # - Move to .monorail-archive/ directory
             return True
 
     return False

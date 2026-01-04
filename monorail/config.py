@@ -1,4 +1,4 @@
-"""Configuration management for Music Man."""
+"""Configuration management for Monorail."""
 
 from __future__ import annotations
 
@@ -7,50 +7,61 @@ from pathlib import Path
 from typing import Optional, List
 import yaml
 
+LEGACY_HOME = Path.home() / ".mm"
+
 # Default paths
-MM_HOME = Path.home() / ".mm"
-CONFIG_FILE = MM_HOME / "config.yaml"
-PROMPTS_DIR = MM_HOME / "prompts"
-INBOX_FILE = MM_HOME / "inbox.md"
-OVERVIEW_FILE = MM_HOME / "overview.md"
-DAEMON_PID = MM_HOME / "daemon.pid"
-DAEMON_LOG = MM_HOME / "daemon.log"
+MONORAIL_HOME = Path.home() / ".monorail"
+CONFIG_FILE = MONORAIL_HOME / "config.yaml"
+PROMPTS_DIR = MONORAIL_HOME / "prompts"
+INBOX_FILE = MONORAIL_HOME / "inbox.md"
+OVERVIEW_FILE = MONORAIL_HOME / "overview.md"
+DAEMON_PID = MONORAIL_HOME / "daemon.pid"
+DAEMON_LOG = MONORAIL_HOME / "daemon.log"
 
 # Default configuration
 DEFAULT_CONFIG = {
     "gemini_api_key": "",
-    "gemini_model": "gemini-2.0-flash-lite",
-    "watch_paths": [
-        str(Path.home() / "projects"),
-        str(Path.home() / "work"),
-    ],
-    "watch_pattern": "**/pool/.session.log",
+    "gemini_model": "gemini-2.5-flash-lite",
+    # No longer need watch_paths - we watch ~/.claude/projects and ~/.codex/sessions directly
     "poll_interval_seconds": 30,
     "extract_on": {
-        "min_new_bytes": 2000,
-        "idle_seconds": 120,
-        "session_end_phrases": [
-            "goodbye",
-            "ending session",
-            "talk to you later",
-            "/exit",
-            "^C",
-            "Session ended",
-        ],
+        "min_new_bytes": 500,  # Lower threshold for faster feedback
+        "idle_seconds": 60,    # Extract after 1 min idle
     },
     "max_sessions_before_archive": 20,
     "archive_summary_max_tokens": 500,
-    "log_max_size_kb": 50,  # Truncate .session.log after extraction to this size
-    "ignore_paths": [
-        "**/node_modules/**",
-        "**/.git/**",
-        "**/venv/**",
-    ],
 }
 
 
+def migrate_legacy_home() -> None:
+    """Move legacy ~/.mm data into ~/.monorail when possible."""
+    if not LEGACY_HOME.exists():
+        return
+
+    if not MONORAIL_HOME.exists():
+        try:
+            LEGACY_HOME.rename(MONORAIL_HOME)
+        except OSError:
+            return
+        return
+
+    for item in LEGACY_HOME.iterdir():
+        target = MONORAIL_HOME / item.name
+        if target.exists():
+            continue
+        try:
+            item.rename(target)
+        except OSError:
+            continue
+
+    try:
+        LEGACY_HOME.rmdir()
+    except OSError:
+        pass
+
+
 class Config:
-    """Music Man configuration manager."""
+    """Monorail configuration manager."""
 
     def __init__(self):
         self._config: dict = {}
@@ -58,6 +69,7 @@ class Config:
 
     def _load(self):
         """Load configuration from file or use defaults."""
+        migrate_legacy_home()
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE) as f:
                 self._config = yaml.safe_load(f) or {}
@@ -71,7 +83,7 @@ class Config:
 
     def save(self):
         """Save configuration to file."""
-        MM_HOME.mkdir(parents=True, exist_ok=True)
+        MONORAIL_HOME.mkdir(parents=True, exist_ok=True)
         with open(CONFIG_FILE, "w") as f:
             yaml.dump(self._config, f, default_flow_style=False)
 
@@ -96,10 +108,6 @@ class Config:
         return self._config.get("gemini_model", "gemini-2.0-flash-lite")
 
     @property
-    def watch_paths(self) -> list[str]:
-        return self._config.get("watch_paths", [])
-
-    @property
     def poll_interval(self) -> int:
         return self._config.get("poll_interval_seconds", 30)
 
@@ -111,31 +119,20 @@ class Config:
     def idle_seconds(self) -> int:
         return self._config.get("extract_on", {}).get("idle_seconds", 120)
 
-    @property
-    def session_end_phrases(self) -> list[str]:
-        return self._config.get("extract_on", {}).get("session_end_phrases", [])
 
-    @property
-    def ignore_paths(self) -> list[str]:
-        return self._config.get("ignore_paths", [])
-
-    @property
-    def log_max_size_kb(self) -> int:
-        return self._config.get("log_max_size_kb", 50)
-
-
-def ensure_mm_home():
-    """Ensure ~/.mm directory structure exists."""
-    MM_HOME.mkdir(parents=True, exist_ok=True)
+def ensure_monorail_home():
+    """Ensure ~/.monorail directory structure exists."""
+    migrate_legacy_home()
+    MONORAIL_HOME.mkdir(parents=True, exist_ok=True)
     PROMPTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Create inbox.md if it doesn't exist
     if not INBOX_FILE.exists():
-        INBOX_FILE.write_text("# Music Man Inbox\n\n_No pending notes._\n")
+        INBOX_FILE.write_text("# Monorail Inbox\n\n_No pending notes._\n")
 
     # Create overview.md if it doesn't exist
     if not OVERVIEW_FILE.exists():
-        OVERVIEW_FILE.write_text("# Music Man Overview\n\n_No projects tracked yet._\n")
+        OVERVIEW_FILE.write_text("# Monorail Overview\n\n_No projects tracked yet._\n")
 
 
 def get_config() -> Config:

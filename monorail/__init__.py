@@ -1,4 +1,4 @@
-"""Music Man - Session continuity daemon for AI coding tools."""
+"""Monorail - Session continuity daemon for AI coding tools."""
 
 # Patch importlib.metadata for Python 3.9 compatibility BEFORE anything else
 import sys

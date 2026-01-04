@@ -17,7 +17,7 @@ def add_note(message: str):
     if INBOX_FILE.exists():
         content = INBOX_FILE.read_text()
     else:
-        content = "# Music Man Inbox\n\n"
+        content = "# Monorail Inbox\n\n"
 
     # Remove the "no pending notes" placeholder if present
     content = content.replace("_No pending notes._\n", "")
@@ -26,10 +26,10 @@ def add_note(message: str):
     note_line = f"- [{timestamp}] {message}\n"
 
     # Insert after the header
-    if "# Music Man Inbox\n\n" in content:
+    if "# Monorail Inbox\n\n" in content:
         content = content.replace(
-            "# Music Man Inbox\n\n",
-            f"# Music Man Inbox\n\n{note_line}",
+            "# Monorail Inbox\n\n",
+            f"# Monorail Inbox\n\n{note_line}",
         )
     else:
         content += note_line
@@ -61,7 +61,7 @@ def get_pending_notes() -> list[tuple[str, str]]:
 
 def clear_inbox():
     """Clear all processed notes from inbox."""
-    INBOX_FILE.write_text("# Music Man Inbox\n\n_No pending notes._\n")
+    INBOX_FILE.write_text("# Monorail Inbox\n\n_No pending notes._\n")
 
 
 def count_pending() -> int:

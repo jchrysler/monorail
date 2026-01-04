@@ -30,6 +30,8 @@ class ExtractionResult:
     loose_threads: list[str] = None
     key_artifacts: dict[str, str] = None
     session_complete: bool = False
+    status: str = ""
+    vibe: str = ""
     raw_response: str = ""
 
     def __post_init__(self):
@@ -138,6 +140,16 @@ class Extractor:
         complete_match = re.search(r"SESSION_COMPLETE:\s*(true|false)", response, re.IGNORECASE)
         if complete_match:
             result.session_complete = complete_match.group(1).lower() == "true"
+
+        # Parse STATUS
+        status_match = re.search(r"STATUS:\s*(.+?)(?:\n|$)", response)
+        if status_match:
+            result.status = status_match.group(1).strip()
+
+        # Parse VIBE
+        vibe_match = re.search(r"VIBE:\s*(\w+)", response)
+        if vibe_match:
+            result.vibe = vibe_match.group(1).strip().lower()
 
         return result
 

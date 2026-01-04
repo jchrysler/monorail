@@ -19,6 +19,8 @@ Extract the following information. Be detailed and specific. Include file paths,
 4. LOOSE_THREADS: Things mentioned but not completed.
 5. KEY_ARTIFACTS: Files created or modified.
 6. SESSION_COMPLETE: Is this session finished (true) or likely to continue (false)?
+7. STATUS: One-line human summary of what's happening (e.g., "Making good progress on cart API, tests passing")
+8. VIBE: One of: smooth | stuck | wrapping-up | just-started | exploring
 
 Respond in this exact format:
 
@@ -39,3 +41,7 @@ KEY_ARTIFACTS:
 ...
 
 SESSION_COMPLETE: [true/false]
+
+STATUS: [one-line summary]
+
+VIBE: [smooth|stuck|wrapping-up|just-started|exploring]

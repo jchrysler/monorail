@@ -1,3 +1,11 @@
+# Monorail data (user-specific)
+context/
+pool/
+*.egg-info/
+
+# Claude Code cache
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]

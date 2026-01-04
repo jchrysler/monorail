@@ -1,4 +1,4 @@
-You are processing notes from a developer's inbox for Music Man.
+You are processing notes from a developer's inbox for Monorail.
 
 Current inbox notes:
 <inbox>

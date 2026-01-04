@@ -1,4 +1,4 @@
-"""Daemon process for Music Man."""
+"""Daemon process for Monorail."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ _stderr = sys.stderr
 sys.stderr = io.StringIO()
 try:
     from rich.console import Console
-    from .config import DAEMON_PID, DAEMON_LOG, get_config, MM_HOME
-    from .watcher import Watcher, truncate_log
+    from .config import DAEMON_PID, DAEMON_LOG, get_config
+    from .watcher import Watcher
     from .extractor import Extractor
     from .notes import update_notes, get_current_task, get_last_session_time
 finally:
@@ -26,7 +26,7 @@ console = Console()
 
 
 def start_daemon():
-    """Start Music Man as a background daemon."""
+    """Start Monorail as a background daemon."""
     if DAEMON_PID.exists():
         pid = int(DAEMON_PID.read_text().strip())
         try:
@@ -104,7 +104,7 @@ def show_status(project: str = None):
     else:
         # Show all projects
         if not projects:
-            console.print("[dim]No projects with pool/.session.log found[/dim]")
+            console.print("[dim]No projects found in Claude Code or Codex sessions[/dim]")
             return
 
         console.print("[bold]Projects:[/bold]")
@@ -115,47 +115,64 @@ def show_status(project: str = None):
 
 
 def _find_projects(config) -> list[dict]:
-    """Find all projects with pool/.session.log files."""
-    import fnmatch
+    """Find all projects from Claude Code and Codex native session directories."""
+    from .watcher import CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR, decode_claude_project_path, extract_project_from_codex_session
 
-    projects = []
-    ignore_patterns = config.ignore_paths
+    projects = {}  # Use dict to dedupe by project path
 
-    def should_ignore(path_str: str) -> bool:
-        """Check if path matches any ignore pattern."""
-        for pattern in ignore_patterns:
-            if fnmatch.fnmatch(path_str, pattern):
-                return True
-            # Also check if any parent matches
-            if "/Library/" in path_str or "/.Trash/" in path_str:
-                return True
-        return False
-
-    for watch_path in config.watch_paths:
-        path = Path(watch_path).expanduser()
-        if not path.exists():
-            continue
-
+    # Scan Claude projects directory
+    if CLAUDE_PROJECTS_DIR.exists():
         try:
-            # Use iterdir + manual recursion to handle errors gracefully
-            for item in path.iterdir():
-                if should_ignore(str(item)):
+            for encoded_folder in CLAUDE_PROJECTS_DIR.iterdir():
+                if not encoded_folder.is_dir():
                     continue
-                if item.is_dir():
-                    pool_log = item / "pool" / ".session.log"
-                    if pool_log.exists():
-                        projects.append({
-                            "name": item.name,
-                            "path": item,
-                            "current_task": get_current_task(item) or "-",
-                            "last_active": get_last_session_time(item),
-                        })
+                project_path = decode_claude_project_path(encoded_folder.name)
+                if not project_path.exists():
+                    continue
+
+                session_files = list(encoded_folder.glob("*.jsonl"))
+                if not session_files:
+                    continue
+
+                last_modified = max(f.stat().st_mtime for f in session_files)
+                last_active = datetime.fromtimestamp(last_modified)
+
+                project_key = str(project_path)
+                if project_key not in projects or projects[project_key]["last_active"] < last_active:
+                    projects[project_key] = {
+                        "name": project_path.name,
+                        "path": project_path,
+                        "current_task": get_current_task(project_path) or "-",
+                        "last_active": last_active,
+                    }
         except (PermissionError, OSError):
-            continue
+            pass
+
+    # Scan Codex sessions directory
+    if CODEX_SESSIONS_DIR.exists():
+        try:
+            for session_file in CODEX_SESSIONS_DIR.glob("**/*.jsonl"):
+                project_path = extract_project_from_codex_session(session_file)
+                if not project_path or not project_path.exists():
+                    continue
+
+                last_active = datetime.fromtimestamp(session_file.stat().st_mtime)
+                project_key = str(project_path)
+
+                if project_key not in projects or projects[project_key]["last_active"] < last_active:
+                    projects[project_key] = {
+                        "name": project_path.name,
+                        "path": project_path,
+                        "current_task": get_current_task(project_path) or "-",
+                        "last_active": last_active,
+                    }
+        except (PermissionError, OSError):
+            pass
 
     # Sort by last active
-    projects.sort(key=lambda p: p["last_active"] or datetime.min, reverse=True)
-    return projects
+    project_list = list(projects.values())
+    project_list.sort(key=lambda p: p["last_active"] or datetime.min, reverse=True)
+    return project_list
 
 
 def _show_project_detail(project: dict):
@@ -212,10 +229,9 @@ def _run_daemon_loop():
 
         if result:
             update_notes(project_path, session_id, result)
-            # Truncate log to prevent it from growing forever
-            log_path = project_path / "pool" / ".session.log"
-            truncate_log(log_path, config.log_max_size_kb)
-            print(f"[{timestamp}] Updated {project_path.name}/pool/mm-notes.md")
+            print(f"[{timestamp}] Updated {project_path.name}/context/monorail-notes.md")
+            return True
+        return False
 
     def on_session_end(project_path: Path, session_id: str):
         """Handle session end."""
@@ -232,7 +248,13 @@ def _run_daemon_loop():
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)
 
-    print(f"Music Man daemon started - watching {len(config.watch_paths)} paths")
+    from .watcher import CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR
+    watch_targets = []
+    if CLAUDE_PROJECTS_DIR.exists():
+        watch_targets.append("Claude Code")
+    if CODEX_SESSIONS_DIR.exists():
+        watch_targets.append("Codex")
+    print(f"Monorail daemon started - watching {' & '.join(watch_targets) if watch_targets else 'nothing'}")
     watcher.start()
 
     while True:
