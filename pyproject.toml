@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monorail-ai"
+version = "0.1.0"
+description = "Automatic session continuity for Claude Code and Codex"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Jeremy Chrysler"}
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+]
+keywords = ["claude", "codex", "ai", "session", "continuity", "developer-tools"]
+dependencies = [
+    "watchdog>=3.0.0",
+    "google-generativeai>=0.3.0",
+    "click>=8.0.0",
+    "pyyaml>=6.0",
+    "rich>=13.0.0",
+    "textual>=0.50.0",
+]
+
+[project.scripts]
+monorail = "monorail.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jchrysler/monorail"
+Repository = "https://github.com/jchrysler/monorail"
+Issues = "https://github.com/jchrysler/monorail/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["monorail*"]
+
+[tool.setuptools.package-data]
+monorail = ["../prompts/*.txt"]

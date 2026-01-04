@@ -13,9 +13,7 @@ Automatic context continuity for Claude Code and Codex. When you start a new ses
 
 ```bash
 # Install
-git clone https://github.com/jchrysler/monorail.git
-cd monorail
-pip install -e .
+pip install monorail-ai
 
 # Configure (paste your Gemini API key when prompted)
 monorail init
@@ -23,6 +21,22 @@ monorail init
 # Start the daemon
 monorail start
 ```
+
+Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
+
+```bash
+pipx install monorail-ai
+```
+
+<details>
+<summary>Install from source</summary>
+
+```bash
+git clone https://github.com/jchrysler/monorail.git
+cd monorail
+pip install -e .
+```
+</details>
 
 That's it. Monorail now watches all your Claude Code and Codex sessions.
 
