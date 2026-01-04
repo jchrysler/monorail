@@ -14,11 +14,11 @@ from .extractor import ExtractionResult
 NOTES_FILENAME = "monorail-notes.md"
 LEGACY_NOTES_FILENAME = "mm-notes.md"
 
-CLAUDE_MD_BLOCK_START = "<!-- monorail:start - auto-added, safe to modify or remove -->"
+CLAUDE_MD_BLOCK_START = "<!-- monorail:start -->"
 CLAUDE_MD_BLOCK_END = "<!-- monorail:end -->"
 CLAUDE_MD_BLOCK = f"""{CLAUDE_MD_BLOCK_START}
-## Session Context
-Read context/monorail-notes.md at session start for continuity.
+## Session Start
+- [ ] Read `context/monorail-notes.md` for recent session history
 {CLAUDE_MD_BLOCK_END}
 """
 
@@ -50,14 +50,14 @@ def ensure_claude_md_block(project_path: Path) -> None:
     if claude_md.exists():
         content = claude_md.read_text()
 
-        # Already has the block at the TOP - nothing to do
+        # Already has the NEW block at the TOP - nothing to do
         if content.lstrip().startswith(CLAUDE_MD_BLOCK_START):
             return
 
-        # Remove existing block (anywhere in file) so we can move it to top
-        if CLAUDE_MD_BLOCK_START in content:
+        # Remove any existing monorail block (old or new format, anywhere in file)
+        if "<!-- monorail:start" in content:
             content = re.sub(
-                rf'\n*{re.escape(CLAUDE_MD_BLOCK_START)}.*?{re.escape(CLAUDE_MD_BLOCK_END)}\n*',
+                r'\n*<!-- monorail:start[^>]*-->.*?<!-- monorail:end -->\n*',
                 '', content, flags=re.DOTALL
             )
 
