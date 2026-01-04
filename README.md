@@ -38,16 +38,23 @@ monorail watch
 
 Start a Claude session, do some work, then check `monorail status` again. You'll see your project listed with the current task.
 
-## Per-Project Setup (Optional)
+## Zero Setup Required
 
-For best results, initialize each project you work on:
+Monorail auto-configures each project on first extraction:
 
-```bash
-cd ~/my-project
-monorail init-project
+1. Creates `context/monorail-notes.md` with your session history
+2. Adds a session context block to `CLAUDE.md` (or creates it):
+
+```markdown
+<!-- monorail:start - auto-added, safe to modify or remove -->
+## Session Context
+Read context/monorail-notes.md at session start for continuity.
+<!-- monorail:end -->
 ```
 
-This creates `context/monorail-notes.md` and adds instructions to CLAUDE.md so new sessions automatically read your context. Without this, Monorail still extracts notes but Claude won't know to read them.
+No per-project init needed. Just start working.
+
+**Optional:** Run `monorail init-project` to set up a project manually, add to `.gitignore`, etc.
 
 ## How It Works
 
@@ -122,10 +129,11 @@ Config lives at `~/.monorail/config.yaml`:
 gemini_api_key: "your-key-here"
 gemini_model: "gemini-2.5-flash-lite"
 poll_interval_seconds: 30
+auto_modify_claude_md: true   # Auto-add session context to CLAUDE.md
 
 extract_on:
   min_new_bytes: 500    # Extract after this much new content
-  idle_seconds: 60      # Or after 1 minute idle
+  idle_seconds: 60      # Or after 1 minute idle (backup)
 ```
 
 ## Why Monorail?
@@ -135,7 +143,8 @@ extract_on:
 | Manual handoff before clearing | Automatic, always running |
 | Burns Claude tokens on summaries | Uses cheap Gemini tokens |
 | Single session memory | Multi-session awareness |
-| Context lost on /clear | Context preserved across clears |
+| Context lost on /clear | Extracted instantly on /clear |
+| Per-project setup | Zero config, auto-detects projects |
 
 ## Architecture
 
