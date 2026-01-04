@@ -29,7 +29,9 @@ def _update_context_instructions(path: Path) -> None:
         return
 
     content = path.read_text()
-    updated = content.replace("context/mm-notes.md", "context/monorail-notes.md")
+    updated = content.replace("pool/mm-notes.md", "context/monorail-notes.md")
+    updated = updated.replace("pool/monorail-notes.md", "context/monorail-notes.md")
+    updated = updated.replace("context/mm-notes.md", "context/monorail-notes.md")
     updated = updated.replace("mm-notes.md", "monorail-notes.md")
     updated = updated.replace("music-man", "monorail")
     updated = updated.replace("Music Man", "Monorail")
@@ -60,12 +62,26 @@ def ensure_claude_md_block(project_path: Path) -> None:
 def migrate_project_files(project_path: Path) -> None:
     """Migrate legacy project artifacts to Monorail naming."""
     context_dir = project_path / "context"
+    legacy_pool_dir = project_path / "pool"
+
+    # Migrate pool/ → context/ (old directory name)
+    if legacy_pool_dir.exists() and not context_dir.exists():
+        legacy_pool_dir.rename(context_dir)
+    elif legacy_pool_dir.exists() and context_dir.exists():
+        # Both exist - move files from pool to context
+        for f in legacy_pool_dir.iterdir():
+            target = context_dir / f.name
+            if not target.exists():
+                f.rename(target)
+
+    # Migrate mm-notes.md → monorail-notes.md (old filename)
     legacy_notes = context_dir / LEGACY_NOTES_FILENAME
     new_notes = context_dir / NOTES_FILENAME
 
     if legacy_notes.exists() and not new_notes.exists():
         legacy_notes.rename(new_notes)
 
+    # Update references in project docs
     _update_context_instructions(project_path / "CLAUDE.md")
     _update_context_instructions(project_path / "agents.md")
 
