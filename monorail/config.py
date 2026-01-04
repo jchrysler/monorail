@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
     },
     "max_sessions_before_archive": 20,
     "archive_summary_max_tokens": 500,
+    "auto_modify_claude_md": True,  # Auto-append session context to CLAUDE.md
 }
 
 
@@ -118,6 +119,10 @@ class Config:
     @property
     def idle_seconds(self) -> int:
         return self._config.get("extract_on", {}).get("idle_seconds", 120)
+
+    @property
+    def auto_modify_claude_md(self) -> bool:
+        return self._config.get("auto_modify_claude_md", True)
 
 
 def ensure_monorail_home():

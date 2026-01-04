@@ -201,6 +201,8 @@ class NativeSessionHandler(FileSystemEventHandler):
         self.on_new_content = on_new_content
         self.on_session_end = on_session_end
         self.config = get_config()
+        # Track active session file per project (for /clear detection)
+        self.active_session_per_project: dict[str, str] = {}  # project_path -> session_key
 
     def on_modified(self, event):
         """Handle file modification events."""
@@ -254,6 +256,26 @@ class NativeSessionHandler(FileSystemEventHandler):
     ):
         """Process changes to a session file."""
         session_key = str(session_file)
+        project_key = str(project_path)
+
+        # Check if this is a new session for a project with an existing active session
+        # This indicates /clear happened - flush the previous session immediately
+        if project_key in self.active_session_per_project:
+            prev_session_key = self.active_session_per_project[project_key]
+            if prev_session_key != session_key and prev_session_key in self.sessions:
+                prev_state = self.sessions[prev_session_key]
+                if prev_state.pending_content:
+                    # Flush previous session before switching
+                    self.on_new_content(
+                        prev_state.project_path,
+                        prev_state.session_id,
+                        prev_state.pending_content,
+                    )
+                    prev_state.pending_content = ""
+                self.on_session_end(prev_state.project_path, prev_state.session_id)
+
+        # Update active session for this project
+        self.active_session_per_project[project_key] = session_key
 
         # Get or create session state
         if session_key not in self.sessions:

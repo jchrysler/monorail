@@ -14,6 +14,14 @@ from .extractor import ExtractionResult
 NOTES_FILENAME = "monorail-notes.md"
 LEGACY_NOTES_FILENAME = "mm-notes.md"
 
+CLAUDE_MD_BLOCK_START = "<!-- monorail:start - auto-added, safe to modify or remove -->"
+CLAUDE_MD_BLOCK_END = "<!-- monorail:end -->"
+CLAUDE_MD_BLOCK = f"""{CLAUDE_MD_BLOCK_START}
+## Session Context
+Read context/monorail-notes.md at session start for continuity.
+{CLAUDE_MD_BLOCK_END}
+"""
+
 
 def _update_context_instructions(path: Path) -> None:
     """Update session context references in existing project docs."""
@@ -27,6 +35,26 @@ def _update_context_instructions(path: Path) -> None:
     updated = updated.replace("Music Man", "Monorail")
     if updated != content:
         path.write_text(updated)
+
+
+def ensure_claude_md_block(project_path: Path) -> None:
+    """Ensure CLAUDE.md has the monorail session context block."""
+    config = get_config()
+    if not config.auto_modify_claude_md:
+        return
+
+    claude_md = project_path / "CLAUDE.md"
+
+    if claude_md.exists():
+        content = claude_md.read_text()
+        # Already has the block (old or new style)
+        if CLAUDE_MD_BLOCK_START in content or "## Session Context" in content:
+            return
+        # Append the block
+        claude_md.write_text(content.rstrip() + "\n\n" + CLAUDE_MD_BLOCK)
+    else:
+        # Create with just the block
+        claude_md.write_text(CLAUDE_MD_BLOCK)
 
 
 def migrate_project_files(project_path: Path) -> None:
@@ -57,6 +85,9 @@ def update_notes(
     """Update monorail-notes.md with extraction results."""
     notes_path = get_notes_path(project_path)
     notes_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Auto-add CLAUDE.md block on first extraction for this project
+    ensure_claude_md_block(project_path)
 
     project_name = project_path.name
     now = datetime.now()
