@@ -154,7 +154,7 @@ class Extractor:
         return result
 
     def summarize(self, sessions: str, max_tokens: int = 500) -> str:
-        """Summarize multiple sessions for archival."""
+        """Summarize multiple sessions for archival. [WIP: Used by archive feature]"""
         self._init_model()
 
         prompt_template = self._load_prompt("summarize")

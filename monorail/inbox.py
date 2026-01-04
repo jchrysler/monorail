@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from .config import INBOX_FILE, get_config
+from .config import INBOX_FILE
 
 
 def add_note(message: str):
@@ -67,29 +67,3 @@ def clear_inbox():
 def count_pending() -> int:
     """Count pending notes in inbox."""
     return len(get_pending_notes())
-
-
-class InboxProcessor:
-    """Process inbox notes and route to projects."""
-
-    def __init__(self, extractor):
-        self.extractor = extractor
-        self.config = get_config()
-
-    def process(self) -> list[dict]:
-        """Process all pending notes and return actions taken."""
-        notes = get_pending_notes()
-        if not notes:
-            return []
-
-        actions = []
-        # TODO: Implement full inbox processing with Gemini
-        # For now, just return the notes
-        for timestamp, message in notes:
-            actions.append({
-                "timestamp": timestamp,
-                "message": message,
-                "action": "logged",
-            })
-
-        return actions

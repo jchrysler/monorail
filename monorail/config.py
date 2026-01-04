@@ -106,7 +106,7 @@ class Config:
 
     @property
     def gemini_model(self) -> str:
-        return self._config.get("gemini_model", "gemini-2.0-flash-lite")
+        return self._config.get("gemini_model", "gemini-2.5-flash-lite")
 
     @property
     def poll_interval(self) -> int:

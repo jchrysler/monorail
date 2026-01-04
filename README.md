@@ -137,7 +137,11 @@ _Last updated: 2025-01-03 14:32_
 
 ## Configuration
 
-Config lives at `~/.monorail/config.yaml`:
+Config lives at `~/.monorail/config.yaml`. For security, restrict permissions on this file since it contains your API key:
+
+```bash
+chmod 600 ~/.monorail/config.yaml
+```
 
 ```yaml
 gemini_api_key: "your-key-here"

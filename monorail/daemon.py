@@ -212,6 +212,40 @@ def _format_time_ago(dt: datetime) -> str:
         return f"{days} day{'s' if days > 1 else ''} ago"
 
 
+def _rotate_log_if_needed():
+    """Rotate daemon.log if it exceeds 5MB."""
+    max_size = 5 * 1024 * 1024  # 5MB
+    max_backups = 3
+
+    if not DAEMON_LOG.exists():
+        return
+
+    try:
+        if DAEMON_LOG.stat().st_size < max_size:
+            return
+
+        # Rotate existing backups
+        for i in range(max_backups - 1, 0, -1):
+            old = DAEMON_LOG.with_suffix(f".log.{i}")
+            new = DAEMON_LOG.with_suffix(f".log.{i + 1}")
+            if old.exists():
+                if new.exists():
+                    new.unlink()
+                old.rename(new)
+
+        # Rotate current log to .1
+        backup = DAEMON_LOG.with_suffix(".log.1")
+        if backup.exists():
+            backup.unlink()
+        DAEMON_LOG.rename(backup)
+
+        # Create fresh log
+        DAEMON_LOG.touch()
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Log rotated")
+    except OSError:
+        pass  # Best effort rotation
+
+
 def _run_daemon_loop():
     """Main daemon loop."""
     config = get_config()
@@ -222,15 +256,18 @@ def _run_daemon_loop():
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{timestamp}] New content in {project_path.name} ({len(content)} bytes)")
 
-        result = extractor.extract(
-            log_content=content,
-            project=project_path.name,
-        )
+        try:
+            result = extractor.extract(
+                log_content=content,
+                project=project_path.name,
+            )
 
-        if result:
-            update_notes(project_path, session_id, result)
-            print(f"[{timestamp}] Updated {project_path.name}/context/monorail-notes.md")
-            return True
+            if result:
+                update_notes(project_path, session_id, result)
+                print(f"[{timestamp}] Updated {project_path.name}/context/monorail-notes.md")
+                return True
+        except Exception as e:
+            print(f"[{timestamp}] Error extracting from {project_path.name}: {e}")
         return False
 
     def on_session_end(project_path: Path, session_id: str):
@@ -258,5 +295,10 @@ def _run_daemon_loop():
     watcher.start()
 
     while True:
-        time.sleep(config.poll_interval)
-        watcher.check_idle()
+        try:
+            time.sleep(config.poll_interval)
+            watcher.check_idle()
+            _rotate_log_if_needed()
+        except Exception as e:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[{timestamp}] Daemon loop error (continuing): {e}")
