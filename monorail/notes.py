@@ -40,7 +40,7 @@ def _update_context_instructions(path: Path) -> None:
 
 
 def ensure_claude_md_block(project_path: Path) -> None:
-    """Ensure CLAUDE.md has the monorail session context block."""
+    """Ensure CLAUDE.md has the monorail session context block at the TOP."""
     config = get_config()
     if not config.auto_modify_claude_md:
         return
@@ -49,11 +49,24 @@ def ensure_claude_md_block(project_path: Path) -> None:
 
     if claude_md.exists():
         content = claude_md.read_text()
-        # Already has the block (old or new style)
-        if CLAUDE_MD_BLOCK_START in content or "## Session Context" in content:
+
+        # Already has the block at the TOP - nothing to do
+        if content.lstrip().startswith(CLAUDE_MD_BLOCK_START):
             return
-        # Append the block
-        claude_md.write_text(content.rstrip() + "\n\n" + CLAUDE_MD_BLOCK)
+
+        # Remove existing block (anywhere in file) so we can move it to top
+        if CLAUDE_MD_BLOCK_START in content:
+            content = re.sub(
+                rf'\n*{re.escape(CLAUDE_MD_BLOCK_START)}.*?{re.escape(CLAUDE_MD_BLOCK_END)}\n*',
+                '', content, flags=re.DOTALL
+            )
+
+        # Remove old-style block (without markers)
+        if "## Session Context" in content:
+            content = re.sub(r'\n*## Session Context\n.*?(?=\n## |\Z)', '', content, flags=re.DOTALL)
+
+        # Prepend the block at TOP for visibility
+        claude_md.write_text(CLAUDE_MD_BLOCK + "\n" + content.lstrip())
     else:
         # Create with just the block
         claude_md.write_text(CLAUDE_MD_BLOCK)
