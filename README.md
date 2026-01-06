@@ -15,16 +15,18 @@ When you start a new session, Claude knows what happened in your last one—and 
 # Install
 pip install monorail-ai
 
-# Interactive setup - configures API key and selects projects
+# Run from anywhere - it finds your projects automatically
 monorail init
 ```
 
 The setup wizard will:
 1. Prompt for your Gemini API key
-2. Discover your Claude Code and Codex projects
+2. Discover your Claude Code and Codex projects (from `~/.claude/projects` and `~/.codex/sessions`)
 3. Let you select which ones to track
 4. Set up each project with `CLAUDE.md` instructions
 5. Start the daemon
+
+Run it from any directory—it doesn't matter where.
 
 Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
 
@@ -133,6 +135,12 @@ _Git commit: abc123_
 ```
 
 The git tracking means Claude knows when commits happened between sessions—so it won't assume the codebase is exactly how it left it.
+
+## Context Size
+
+Each session adds ~20-40 lines to the notes. For most projects this stays small, but very active projects can grow large.
+
+**Coming soon:** Automatic archival that summarizes old sessions and keeps the active context lean. For now, you can manually trim old session entries from `context/monorail-notes.md` if it gets too long.
 
 ## Commands
 
