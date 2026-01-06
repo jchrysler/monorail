@@ -327,34 +327,25 @@ def _add_commits_warning(content: str, commits: list[str]) -> str:
     return content
 
 
-def archive_sessions(project: str) -> bool:
-    """Archive old sessions for a project."""
-    from .watcher import CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR, decode_claude_project_path, extract_project_from_codex_session
+def archive_sessions(project: str) -> bool | None:
+    """Archive old sessions for a project.
 
-    # Find the project by searching native session directories
-    def find_project_path(name: str) -> Path | None:
-        if CLAUDE_PROJECTS_DIR.exists():
-            for encoded_folder in CLAUDE_PROJECTS_DIR.iterdir():
-                if not encoded_folder.is_dir():
-                    continue
-                project_path = decode_claude_project_path(encoded_folder.name)
-                if project_path.name == name and project_path.exists():
-                    return project_path
-
-        if CODEX_SESSIONS_DIR.exists():
-            for session_file in CODEX_SESSIONS_DIR.glob("**/*.jsonl"):
-                project_path = extract_project_from_codex_session(session_file)
-                if project_path and project_path.name == name and project_path.exists():
-                    return project_path
-        return None
+    Returns:
+        True if archival was performed
+        False if no cleanup was needed
+        None if project was not found
+    """
+    from .utils import find_project_path
 
     project_path = find_project_path(project)
-    if project_path:
-        notes_path = get_notes_path(project_path)
-        if notes_path.exists():
-            return cleanup_old_sessions(notes_path)
+    if not project_path:
+        return None  # Project not found
 
-    return False
+    notes_path = get_notes_path(project_path)
+    if notes_path.exists():
+        return cleanup_old_sessions(notes_path)
+
+    return False  # No notes to archive
 
 
 # Configurable thresholds for cleanup

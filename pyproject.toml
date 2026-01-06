@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "monorail-ai"
 version = "0.1.0"
-description = "Automatic session continuity for Claude Code and Codex"
+description = "Autosave for your coding sessions - keeps all your work on one track"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [

@@ -65,9 +65,9 @@ Monorail auto-configures each project on first extraction:
 2. Adds a session context block to `CLAUDE.md` (or creates it):
 
 ```markdown
-<!-- monorail:start - auto-added, safe to modify or remove -->
-## Session Context
-Read context/monorail-notes.md at session start for continuity.
+<!-- monorail:start -->
+## Session Start
+- [ ] Read `context/monorail-notes.md` for recent session history
 <!-- monorail:end -->
 ```
 

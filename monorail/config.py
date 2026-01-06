@@ -140,6 +140,12 @@ def ensure_monorail_home():
         OVERVIEW_FILE.write_text("# Monorail Overview\n\n_No projects tracked yet._\n")
 
 
+_config_instance: Config | None = None
+
+
 def get_config() -> Config:
-    """Get the global configuration instance."""
-    return Config()
+    """Get the global configuration instance (singleton)."""
+    global _config_instance
+    if _config_instance is None:
+        _config_instance = Config()
+    return _config_instance

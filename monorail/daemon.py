@@ -193,23 +193,8 @@ def _show_project_detail(project: dict):
 
 def _format_time_ago(dt: datetime) -> str:
     """Format a datetime as 'X ago' string."""
-    if not dt:
-        return "never"
-
-    delta = datetime.now() - dt
-    seconds = delta.total_seconds()
-
-    if seconds < 60:
-        return "just now"
-    elif seconds < 3600:
-        mins = int(seconds / 60)
-        return f"{mins} min ago"
-    elif seconds < 86400:
-        hours = int(seconds / 3600)
-        return f"{hours} hour{'s' if hours > 1 else ''} ago"
-    else:
-        days = int(seconds / 86400)
-        return f"{days} day{'s' if days > 1 else ''} ago"
+    from .utils import format_time_ago
+    return format_time_ago(dt)
 
 
 def _rotate_log_if_needed():

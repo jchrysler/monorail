@@ -153,18 +153,8 @@ class MonorailApp(App):
 
     def _format_time_ago(self, dt: datetime) -> str:
         """Format datetime as 'X ago' string."""
-        delta = datetime.now() - dt
-        if delta.total_seconds() < 60:
-            return "just now"
-        elif delta.total_seconds() < 3600:
-            mins = int(delta.total_seconds() / 60)
-            return f"{mins}m ago"
-        elif delta.total_seconds() < 86400:
-            hours = int(delta.total_seconds() / 3600)
-            return f"{hours}h ago"
-        else:
-            days = int(delta.total_seconds() / 86400)
-            return f"{days}d ago"
+        from .utils import format_time_ago
+        return format_time_ago(dt)
 
     def _refresh_display(self):
         """Refresh the contextual display."""

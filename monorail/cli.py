@@ -88,27 +88,8 @@ def _discover_projects() -> list[dict]:
 
 def _format_time_ago(dt) -> str:
     """Format datetime as human-readable time ago."""
-    from datetime import datetime
-    if not dt:
-        return "never"
-
-    delta = datetime.now() - dt
-    seconds = delta.total_seconds()
-
-    if seconds < 60:
-        return "just now"
-    elif seconds < 3600:
-        mins = int(seconds / 60)
-        return f"{mins}m ago"
-    elif seconds < 86400:
-        hours = int(seconds / 3600)
-        return f"{hours}h ago"
-    elif seconds < 604800:
-        days = int(seconds / 86400)
-        return f"{days}d ago"
-    else:
-        weeks = int(seconds / 604800)
-        return f"{weeks}w ago"
+    from .utils import format_time_ago
+    return format_time_ago(dt)
 
 
 def _interactive_project_selection(projects: list[dict]) -> list[dict]:
@@ -412,23 +393,7 @@ def note(message: tuple):
 def log(project: str):
     """Open project notes in $EDITOR."""
     import subprocess
-    from .watcher import CLAUDE_PROJECTS_DIR, CODEX_SESSIONS_DIR, decode_claude_project_path, extract_project_from_codex_session
-
-    def find_project_path(name: str) -> Path | None:
-        if CLAUDE_PROJECTS_DIR.exists():
-            for encoded_folder in CLAUDE_PROJECTS_DIR.iterdir():
-                if not encoded_folder.is_dir():
-                    continue
-                project_path = decode_claude_project_path(encoded_folder.name)
-                if project_path and project_path.name == name and project_path.exists():
-                    return project_path
-
-        if CODEX_SESSIONS_DIR.exists():
-            for session_file in CODEX_SESSIONS_DIR.glob("**/*.jsonl"):
-                project_path = extract_project_from_codex_session(session_file)
-                if project_path and project_path.name == name and project_path.exists():
-                    return project_path
-        return None
+    from .utils import find_project_path
 
     project_path = find_project_path(project)
     if project_path:
@@ -456,7 +421,7 @@ def archive(project: str):
         console.print(f"[green]✓[/green] Archived old sessions for {project}")
     elif result is False:
         console.print(f"[dim]No cleanup needed for {project} (not enough sessions)[/dim]")
-    else:
+    elif result is None:
         console.print(f"[red]Project not found:[/red] {project}")
 
 
