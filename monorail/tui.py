@@ -170,6 +170,14 @@ class MonorailApp(App):
         """Refresh the contextual display."""
         lines = []
 
+        def safe(text: str, max_len: int = 0) -> str:
+            """Truncate first, then escape for Rich markup safety."""
+            if not text:
+                return ""
+            if max_len > 0:
+                text = text[:max_len]
+            return escape(text)
+
         # RIGHT NOW section
         lines.append("[bold #FFD700]RIGHT NOW[/]")
         lines.append("─" * 40)
@@ -178,11 +186,11 @@ class MonorailApp(App):
         if active:
             for session in active:
                 vibe_emoji = VIBE_EMOJI.get(session.vibe, "⚪")
-                lines.append(f"{vibe_emoji} [bold]{escape(session.project_name)}[/] ({session.session_id[:8]})")
+                lines.append(f"{vibe_emoji} [bold]{safe(session.project_name)}[/] ({session.session_id[:8]})")
                 if session.status:
-                    lines.append(f"   {escape(session.status)}")
+                    lines.append(f"   {safe(session.status, 60)}")
                 elif session.stated_goal:
-                    lines.append(f"   Working on: {escape(session.stated_goal[:60])}")
+                    lines.append(f"   Working on: {safe(session.stated_goal, 60)}")
                 lines.append("")
         else:
             lines.append("   [dim]No active sessions[/]")
@@ -196,9 +204,9 @@ class MonorailApp(App):
         if recent:
             for session in recent:
                 time_ago = self._format_time_ago(session.last_update)
-                lines.append(f"[dim]{escape(session.project_name)}[/] ({session.session_id[:8]}) - {time_ago}")
+                lines.append(f"[dim]{safe(session.project_name)}[/] ({session.session_id[:8]}) - {time_ago}")
                 if session.left_off_at:
-                    lines.append(f"   Left off: {escape(session.left_off_at[:50])}")
+                    lines.append(f"   Left off: {safe(session.left_off_at, 50)}")
                 lines.append("")
         else:
             lines.append("   [dim]None yet[/]")
@@ -216,7 +224,7 @@ class MonorailApp(App):
 
         if attention:
             for project, issue in attention[:5]:  # Show max 5
-                lines.append(f"   • [bold]{escape(project)}[/]: {escape(issue[:50])}")
+                lines.append(f"   • [bold]{safe(project)}[/]: {safe(issue, 50)}")
         else:
             lines.append("   [dim]All clear[/]")
 
