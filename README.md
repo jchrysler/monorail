@@ -2,7 +2,7 @@
 
 **Autosave for your coding sessions.** Keeps all your work on one track.
 
-When you start a new session, Claude knows what happened in your last one—and what changed while you were away.
+When you start a new session, both codex and Claude will automatically what happened in your last one. 
 
 ## Prerequisites
 
