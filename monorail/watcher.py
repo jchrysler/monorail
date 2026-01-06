@@ -88,12 +88,17 @@ def decode_claude_project_path(encoded_name: str) -> Path:
         return None
 
     result = find_path(parts, Path("/"))
-    if result:
+    if result and result.exists():
         return result
 
     # Fallback: simple hyphen-to-slash replacement
-    simple_path = "/" + encoded_name[1:].replace("-", "/")
-    return Path(simple_path)
+    # Only return if it actually exists
+    simple_path = Path("/" + encoded_name[1:].replace("-", "/"))
+    if simple_path.exists():
+        return simple_path
+
+    # Path doesn't exist - return None to skip processing
+    return None
 
 
 def extract_project_from_codex_session(session_file: Path) -> Optional[Path]:
@@ -235,6 +240,8 @@ class NativeSessionHandler(FileSystemEventHandler):
         # ~/.claude/projects/-Users-jeremy-chrysler-monorail/session-id.jsonl
         encoded_folder = session_file.parent.name
         project_path = decode_claude_project_path(encoded_folder)
+        if not project_path:
+            return  # Skip sessions for non-existent projects
 
         self._process_session(session_file, project_path, "claude", parse_claude_jsonl)
 

@@ -149,6 +149,10 @@ def update_notes(
     tool: str = "claude",
 ):
     """Update monorail-notes.md with extraction results."""
+    # Skip if project doesn't exist (stale session or decode failure)
+    if not project_path.exists():
+        return
+
     notes_path = get_notes_path(project_path)
     notes_path.parent.mkdir(parents=True, exist_ok=True)
 

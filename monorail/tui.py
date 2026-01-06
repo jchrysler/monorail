@@ -250,8 +250,8 @@ class MonorailApp(App):
     def start_watcher(self):
         def on_new_content(project_path: Path, session_id: str, content: str):
             size_kb = len(content) / 1024
-            self._safe_log(f"📝 {project_path.name}: New content ({size_kb:.1f}KB)")
-            self._safe_log(f"🤖 {project_path.name}: Extracting...")
+            self._safe_log(f"📝 {escape(project_path.name)}: New content ({size_kb:.1f}KB)")
+            self._safe_log(f"🤖 {escape(project_path.name)}: Extracting...")
 
             result = self.extractor.extract(log_content=content, project=project_path.name)
             if result:
@@ -260,18 +260,18 @@ class MonorailApp(App):
 
                 # Show status in log if available
                 if result.status:
-                    self._safe_log(f"✅ {project_path.name}: {result.status[:50]}")
+                    self._safe_log(f"✅ {escape(project_path.name)}: {escape(result.status[:50])}")
                 else:
-                    self._safe_log(f"✅ {project_path.name}: Notes updated")
+                    self._safe_log(f"✅ {escape(project_path.name)}: Notes updated")
 
                 self._safe_refresh()
                 return True
             else:
-                self._safe_log(f"⚠️  {project_path.name}: Skipped")
+                self._safe_log(f"⚠️  {escape(project_path.name)}: Skipped")
                 return False
 
         def on_session_end(project_path: Path, session_id: str):
-            self._safe_log(f"🏁 {project_path.name}: Session ended")
+            self._safe_log(f"🏁 {escape(project_path.name)}: Session ended")
 
             # Mark session as finished
             key = f"{project_path.name}:{session_id}"
