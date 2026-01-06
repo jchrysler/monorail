@@ -393,8 +393,8 @@ def cleanup_old_sessions(notes_path: Path, keep_recent: int = 10) -> bool:
     old_content = ''.join(old_sessions)
     summary = extractor.summarize(old_content, max_tokens=300)
 
-    if not summary:
-        return False  # Summarization failed
+    if not summary or not summary.strip():
+        return False  # Summarization failed or returned empty
 
     # Check if there's already a historical summary section
     historical_marker = "## Historical Summary"
@@ -487,3 +487,30 @@ def get_last_session_time(project_path: Path) -> Optional[datetime]:
         except ValueError:
             return None
     return None
+
+
+def fix_empty_summaries(notes_path: Path) -> bool:
+    """Remove empty summary placeholders from notes file.
+
+    Cleans up lines like "_X older sessions archived. Summary:_" that have
+    no actual summary content following them.
+
+    Returns:
+        True if any changes were made, False otherwise.
+    """
+    if not notes_path.exists():
+        return False
+
+    content = notes_path.read_text()
+
+    # Remove empty archive placeholders (followed by blank lines or next section)
+    cleaned = re.sub(
+        r'_\d+ older sessions archived\. Summary:_\n\n+(?=_\d+ older|\*\*|##|$)',
+        '',
+        content
+    )
+
+    if cleaned != content:
+        notes_path.write_text(cleaned)
+        return True
+    return False

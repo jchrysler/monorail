@@ -300,6 +300,20 @@ class NativeSessionHandler(FileSystemEventHandler):
         if not new_content:
             return
 
+        # Check for time gap BEFORE updating last_activity
+        # If there's a large gap (laptop sleep, long break), treat as new session
+        if state.pending_content and state.last_activity:
+            gap = (datetime.now() - state.last_activity).total_seconds()
+            if gap >= self.config.session_gap_seconds:
+                # Flush current session before starting new one
+                self.on_new_content(
+                    state.project_path,
+                    state.session_id,
+                    state.pending_content,
+                )
+                state.pending_content = ""
+                state.session_id = generate_session_id()
+
         state.last_activity = datetime.now()
 
         combined = state.pending_jsonl + new_content

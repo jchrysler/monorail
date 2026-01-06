@@ -28,6 +28,7 @@ DEFAULT_CONFIG = {
         "min_new_bytes": 500,  # Lower threshold for faster feedback
         "idle_seconds": 60,    # Extract after 1 min idle
     },
+    "session_gap_seconds": 1800,  # 30 minutes gap = treat as new session
     "max_sessions_before_archive": 20,
     "archive_summary_max_tokens": 500,
     "auto_modify_claude_md": True,  # Auto-append session context to CLAUDE.md
@@ -123,6 +124,10 @@ class Config:
     @property
     def auto_modify_claude_md(self) -> bool:
         return self._config.get("auto_modify_claude_md", True)
+
+    @property
+    def session_gap_seconds(self) -> int:
+        return self._config.get("session_gap_seconds", 1800)
 
 
 def ensure_monorail_home():

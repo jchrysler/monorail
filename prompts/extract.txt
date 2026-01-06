@@ -17,6 +17,13 @@ Extract the following information. Be detailed and specific. Include file paths,
 2. WHAT_HAPPENED: Detailed bullet points of what occurred.
 3. LEFT_OFF_AT: Where did the session end? What was the last action?
 4. LOOSE_THREADS: Things mentioned but not completed.
+   IMPORTANT: Any text containing these patterns MUST appear in LOOSE_THREADS verbatim:
+   - "remind me to [X]" → capture X
+   - "TODO: [X]" → capture X
+   - "REMIND: [X]" → capture X
+   - "@later [X]" → capture X
+   - "add [X] to my todo list" → capture X
+   These explicit reminders take priority over inferred loose threads.
 5. KEY_ARTIFACTS: Files created or modified.
 6. SESSION_COMPLETE: Is this session finished (true) or likely to continue (false)?
 7. STATUS: One-line human summary of what's happening (e.g., "Making good progress on cart API, tests passing")

@@ -425,6 +425,98 @@ def archive(project: str):
         console.print(f"[red]Project not found:[/red] {project}")
 
 
+@main.command("fix-summaries")
+@click.argument("project", required=False)
+def fix_summaries(project: str = None):
+    """Clean up empty summary placeholders in notes files."""
+    from .utils import find_project_path
+    from .notes import get_notes_path, fix_empty_summaries
+
+    if project:
+        project_path = find_project_path(project)
+        if not project_path:
+            console.print(f"[red]Project not found:[/red] {project}")
+            return
+        notes_path = get_notes_path(project_path)
+        if notes_path.exists() and fix_empty_summaries(notes_path):
+            console.print(f"[green]✓[/green] Cleaned {project}")
+        else:
+            console.print(f"[dim]No empty summaries in {project}[/dim]")
+    else:
+        # Fix all known projects
+        projects = _discover_projects()
+        fixed = 0
+        for p in projects:
+            notes_path = get_notes_path(p["path"])
+            if notes_path.exists() and fix_empty_summaries(notes_path):
+                console.print(f"[green]✓[/green] Cleaned {p['name']}")
+                fixed += 1
+        if fixed == 0:
+            console.print("[dim]No empty summaries found[/dim]")
+
+
+@main.command()
+@click.argument("project", required=False)
+def explain(project: str = None):
+    """Show what Monorail has modified for a project."""
+    from .utils import find_project_path
+    from .notes import CLAUDE_MD_BLOCK_START, get_notes_path
+
+    # If no project specified, use current directory
+    if project:
+        project_path = find_project_path(project)
+        if not project_path:
+            console.print(f"[red]Project not found:[/red] {project}")
+            return
+    else:
+        project_path = Path.cwd()
+
+    console.print(f"\n[bold]Monorail setup for {project_path.name}[/bold]\n")
+
+    # Check CLAUDE.md
+    claude_md = project_path / "CLAUDE.md"
+    if claude_md.exists():
+        content = claude_md.read_text()
+        if CLAUDE_MD_BLOCK_START in content:
+            console.print("[green]✓[/green] CLAUDE.md has monorail block")
+            console.print("  [dim]This tells Claude to read monorail-notes.md at session start[/dim]")
+        else:
+            console.print("[yellow]○[/yellow] CLAUDE.md exists but has no monorail block")
+    else:
+        console.print("[dim]○[/dim] No CLAUDE.md")
+
+    # Check agents.md
+    agents_md = project_path / "agents.md"
+    if agents_md.exists():
+        content = agents_md.read_text()
+        if CLAUDE_MD_BLOCK_START in content or "Session Context" in content:
+            console.print("[green]✓[/green] agents.md has session context block")
+        else:
+            console.print("[yellow]○[/yellow] agents.md exists but has no session context")
+
+    # Check notes file
+    notes_path = get_notes_path(project_path)
+    if notes_path.exists():
+        content = notes_path.read_text()
+        session_count = content.count('### ')
+        lines = len(content.split('\n'))
+        console.print(f"[green]✓[/green] {notes_path.relative_to(project_path)}")
+        console.print(f"  [dim]{session_count} sessions, {lines} lines[/dim]")
+    else:
+        console.print("[dim]○[/dim] No notes file yet (created on first session)")
+
+    # Check .gitignore
+    gitignore = project_path / ".gitignore"
+    if gitignore.exists():
+        content = gitignore.read_text()
+        if "context/" in content:
+            console.print("[green]✓[/green] .gitignore excludes context/")
+        else:
+            console.print("[yellow]○[/yellow] .gitignore doesn't exclude context/")
+
+    console.print()
+
+
 def _copy_default_prompts():
     """Copy default prompt templates to ~/.monorail/prompts/."""
     package_prompts = Path(__file__).parent.parent / "prompts"
