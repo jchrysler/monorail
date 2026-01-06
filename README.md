@@ -8,7 +8,7 @@ Every time you start a new Claude Code or Codex session, you lose context. You h
 
 **How it's different:**
 
-- **Zero tokens burned** — Uses Gemini Flash Lite (essentially free) instead of Claude/Codex tokens for extraction
+- **Zero tokens burned** — Uses Gemini Flash Lite (very cheap tokens) instead of Claude/Codex tokens for extraction
 - **Fully async** — Runs as a background daemon, extracts notes while you work, never interrupts your flow
 - **Works with both tools** — Supports Claude Code and OpenAI Codex from the same daemon
 - **Git-aware** — Tracks commits between sessions so Claude knows what changed while you were away
