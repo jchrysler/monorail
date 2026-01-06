@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -12,6 +13,42 @@ from .extractor import ExtractionResult
 
 
 NOTES_FILENAME = "monorail-notes.md"
+
+
+def _get_git_head(project_path: Path) -> Optional[str]:
+    """Get the current HEAD commit hash for a project."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project_path,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()[:7]  # Short hash
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
+
+
+def _get_commits_since(project_path: Path, since_hash: str) -> list[str]:
+    """Get commit summaries since a given hash."""
+    try:
+        result = subprocess.run(
+            ["git", "log", f"{since_hash}..HEAD", "--oneline", "--no-decorate"],
+            cwd=project_path,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().split("\n")
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return []
+
+
 LEGACY_NOTES_FILENAME = "mm-notes.md"
 
 CLAUDE_MD_BLOCK_START = "<!-- monorail:start -->"
@@ -122,11 +159,21 @@ def update_notes(
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d %H:%M")
 
+    # Get current git state
+    current_git_commit = _get_git_head(project_path)
+
     # Load existing notes or create new
     if notes_path.exists():
         content = notes_path.read_text()
+
+        # Check for commits since last session
+        stored_commit = _get_stored_git_commit(content)
+        if stored_commit and current_git_commit and stored_commit != current_git_commit:
+            new_commits = _get_commits_since(project_path, stored_commit)
+            if new_commits:
+                content = _add_commits_warning(content, new_commits)
     else:
-        content = _create_initial_notes(project_name)
+        content = _create_initial_notes(project_name, current_git_commit)
 
     # Update active context section
     content = _update_active_context(content, extraction)
@@ -140,17 +187,20 @@ def update_notes(
     )
     content = _insert_session_entry(content, session_entry)
 
-    # Update last updated timestamp
+    # Update last updated timestamp and git commit
     content = _update_timestamp(content, timestamp)
+    if current_git_commit:
+        content = _update_git_commit(content, current_git_commit)
 
     notes_path.write_text(content)
 
 
-def _create_initial_notes(project_name: str) -> str:
+def _create_initial_notes(project_name: str, git_commit: Optional[str] = None) -> str:
     """Create initial monorail-notes.md content."""
+    git_line = f"\n_Git commit: {git_commit}_" if git_commit else ""
     return f"""# monorail notes
 _Project: {project_name}_
-_Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M")}_
+_Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M")}_{git_line}
 
 ## Active Context
 
@@ -228,6 +278,50 @@ def _update_timestamp(content: str, timestamp: str) -> str:
         f"_Last updated: {timestamp}_",
         content,
     )
+
+
+def _get_stored_git_commit(content: str) -> Optional[str]:
+    """Extract the stored git commit hash from notes."""
+    match = re.search(r"_Git commit: ([a-f0-9]+)_", content)
+    return match.group(1) if match else None
+
+
+def _update_git_commit(content: str, commit: str) -> str:
+    """Update or add the git commit line in notes."""
+    if "_Git commit:" in content:
+        return re.sub(r"_Git commit: [a-f0-9]+_", f"_Git commit: {commit}_", content)
+    else:
+        # Add after last updated line
+        return re.sub(
+            r"(_Last updated: .+_)",
+            f"\\1\n_Git commit: {commit}_",
+            content,
+        )
+
+
+def _add_commits_warning(content: str, commits: list[str]) -> str:
+    """Add a warning about commits that happened between sessions."""
+    num_commits = len(commits)
+
+    # Format the warning
+    if num_commits == 1:
+        warning = f"**⚠️ 1 commit since last session:**\n"
+    else:
+        warning = f"**⚠️ {num_commits} commits since last session:**\n"
+
+    # Show up to 5 commits
+    for commit in commits[:5]:
+        warning += f"- {commit}\n"
+    if num_commits > 5:
+        warning += f"- ... and {num_commits - 5} more\n"
+
+    # Insert after Active Context header
+    if "## Active Context" in content:
+        return content.replace(
+            "## Active Context\n",
+            f"## Active Context\n\n{warning}\n",
+        )
+    return content
 
 
 def archive_sessions(project: str) -> bool:

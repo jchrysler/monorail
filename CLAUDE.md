@@ -1,4 +1,5 @@
-<!-- monorail:start - auto-added, safe to modify or remove -->
-## Session Context
-Read context/monorail-notes.md at session start for continuity.
+<!-- monorail:start -->
+## Session Start
+- [ ] Read `context/monorail-notes.md` for recent session history
 <!-- monorail:end -->
+

@@ -1,8 +1,8 @@
 # Monorail
 
-**Keeps your CLI sessions on one track.**
+**Autosave for your coding sessions.** Keeps all your work on one track.
 
-Automatic context continuity for Claude Code and Codex. When you start a new session, Claude knows what happened in your last one.
+When you start a new session, Claude knows what happened in your last one—and what changed while you were away.
 
 ## Prerequisites
 
@@ -15,17 +15,21 @@ Automatic context continuity for Claude Code and Codex. When you start a new ses
 # Install
 pip install monorail-ai
 
-# Configure (paste your Gemini API key when prompted)
+# Interactive setup - configures API key and selects projects
 monorail init
-
-# Start the daemon
-monorail start
 ```
+
+The setup wizard will:
+1. Prompt for your Gemini API key
+2. Discover your Claude Code and Codex projects
+3. Let you select which ones to track
+4. Set up each project with `CLAUDE.md` instructions
+5. Start the daemon
 
 Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
 
 ```bash
-pipx install monorail-ai
+pipx install monorail-ai && monorail init
 ```
 
 <details>
@@ -35,10 +39,9 @@ pipx install monorail-ai
 git clone https://github.com/jchrysler/monorail.git
 cd monorail
 pip install -e .
+monorail init
 ```
 </details>
-
-That's it. Monorail now watches all your Claude Code and Codex sessions.
 
 ## Verify It Works
 
@@ -107,8 +110,14 @@ Example output in `context/monorail-notes.md`:
 # monorail notes
 _Project: my-app_
 _Last updated: 2025-01-03 14:32_
+_Git commit: abc123_
 
 ## Active Context
+
+**⚠️ 2 commits since last session:**
+- def456 Fix login validation bug
+- 789abc Update dependencies
+
 **Current task:** Implementing user authentication
 
 ## Session Log
@@ -123,12 +132,14 @@ _Last updated: 2025-01-03 14:32_
 ---
 ```
 
+The git tracking means Claude knows when commits happened between sessions—so it won't assume the codebase is exactly how it left it.
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `monorail init` | First-time setup (prompts for API key) |
-| `monorail init-project` | Initialize current directory (`--no-gitignore` to commit notes) |
+| `monorail init` | Interactive setup: API key, project selection, and daemon start |
+| `monorail init-project` | Initialize current directory only (`--no-gitignore` to commit notes) |
 | `monorail start` | Start background daemon |
 | `monorail stop` | Stop daemon |
 | `monorail status` | Show daemon and project status |
@@ -163,6 +174,7 @@ extract_on:
 | Single session memory | Multi-session awareness |
 | Context lost on /clear | Extracted instantly on /clear |
 | Per-project setup | Zero config, auto-detects projects |
+| No idea what changed between sessions | Git tracking shows commits you missed |
 
 ## Architecture
 
