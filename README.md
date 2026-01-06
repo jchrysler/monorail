@@ -16,47 +16,67 @@ Every time you start a new Claude Code or Codex session, you lose context. You h
 
 When you start a new session, Claude reads your notes and picks up exactly where you left off.
 
-## Install
+## Getting Started
+
+### Step 1: Get a Gemini API Key (free)
+
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+2. Click "Create API Key"
+3. Copy the key somewhere safe — you'll paste it in Step 3
+
+This is what powers the note extraction. It's free and fast.
+
+### Step 2: Install Monorail
+
+Open your terminal and run:
 
 ```bash
 pip install monorail-ai
 ```
 
-That's it. Run from anywhere—no cloning, no virtual env required. The package is on PyPI.
-
-Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
-
-```bash
-pipx install monorail-ai
-```
+That's it. You can run this from any folder.
 
 <details>
-<summary>Install from source (for development)</summary>
+<summary>🛠 Troubleshooting install issues</summary>
 
+**"command not found: pip"**
+Try `pip3` instead:
 ```bash
-git clone https://github.com/jchrysler/monorail.git
-cd monorail
-pip install -e .
+pip3 install monorail-ai
 ```
+
+**"permission denied"**
+Add `--user` to install just for your account:
+```bash
+pip install --user monorail-ai
+```
+
+**"monorail: command not found" after install**
+The install worked, but the command isn't in your PATH. Try:
+```bash
+python3 -m monorail.cli init
+```
+Or add this alias to your shell config (`~/.zshrc` or `~/.bashrc`):
+```bash
+alias monorail="python3 -m monorail.cli"
+```
+
+**Still stuck?** [Open an issue](https://github.com/jchrysler/monorail/issues) — happy to help.
 </details>
 
-## Prerequisites
-
-1. **Python 3.9+**
-2. **Gemini API key** — Get one free at [Google AI Studio](https://aistudio.google.com/apikey)
-
-## Quick Start
+### Step 3: Run the Setup Wizard
 
 ```bash
 monorail init
 ```
 
-The setup wizard will:
-1. Prompt for your Gemini API key
-2. Discover your Claude Code and Codex projects (from `~/.claude/projects` and `~/.codex/sessions`)
-3. Let you select which ones to track
-4. Set up each project with `CLAUDE.md` instructions
-5. Start the daemon
+This will:
+1. Ask for your Gemini API key (paste what you copied in Step 1)
+2. Find your Claude Code and Codex projects automatically
+3. Let you pick which ones to track
+4. Start the background daemon
+
+**That's it. You're done.** Monorail is now running and will extract notes from your sessions automatically.
 
 ## Verify It Works
 
