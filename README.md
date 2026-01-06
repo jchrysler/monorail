@@ -138,9 +138,17 @@ The git tracking means Claude knows when commits happened between sessions—so 
 
 ## Context Size
 
-Each session adds ~20-40 lines to the notes. For most projects this stays small, but very active projects can grow large.
+Each session adds ~20-40 lines to the notes. Monorail automatically keeps context lean:
 
-**Coming soon:** Automatic archival that summarizes old sessions and keeps the active context lean. For now, you can manually trim old session entries from `context/monorail-notes.md` if it gets too long.
+- **Auto-archival**: When notes exceed 400 lines or 15 sessions, older sessions are summarized
+- **Gemini-powered**: Old sessions get compressed into a "Historical Summary" section
+- **Recent sessions preserved**: The last 10 sessions stay intact for immediate context
+
+You can also trigger archival manually:
+
+```bash
+monorail archive my-project
+```
 
 ## Commands
 
@@ -153,6 +161,7 @@ Each session adds ~20-40 lines to the notes. For most projects this stays small,
 | `monorail status` | Show daemon and project status |
 | `monorail watch` | Live TUI dashboard |
 | `monorail log <project>` | Open project notes in $EDITOR |
+| `monorail archive <project>` | Manually trigger session archival |
 
 ## Configuration
 
