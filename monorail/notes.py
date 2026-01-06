@@ -194,6 +194,9 @@ def update_notes(
 
     notes_path.write_text(content)
 
+    # Check if cleanup is needed (async-safe, won't block)
+    maybe_cleanup_notes(project_path)
+
 
 def _create_initial_notes(project_name: str, git_commit: Optional[str] = None) -> str:
     """Create initial monorail-notes.md content."""
@@ -349,13 +352,105 @@ def archive_sessions(project: str) -> bool:
     if project_path:
         notes_path = get_notes_path(project_path)
         if notes_path.exists():
-            # TODO: Implement archival logic
-            # - Count sessions
-            # - If > max_sessions_before_archive, summarize old ones
-            # - Move to .monorail-archive/ directory
-            return True
+            return cleanup_old_sessions(notes_path)
 
     return False
+
+
+# Configurable thresholds for cleanup
+MAX_SESSIONS_BEFORE_CLEANUP = 15  # Keep this many recent sessions intact
+MAX_LINES_BEFORE_CLEANUP = 400    # Trigger cleanup if notes exceed this
+
+
+def cleanup_old_sessions(notes_path: Path, keep_recent: int = 10) -> bool:
+    """Clean up old sessions by summarizing them with Gemini.
+
+    Keeps the most recent `keep_recent` sessions intact and summarizes older ones
+    into a compact "Historical Summary" section.
+    """
+    content = notes_path.read_text()
+    lines = content.split('\n')
+
+    # Check if cleanup is needed
+    session_count = content.count('### ')
+    if session_count <= MAX_SESSIONS_BEFORE_CLEANUP and len(lines) <= MAX_LINES_BEFORE_CLEANUP:
+        return False  # No cleanup needed
+
+    # Parse the notes file
+    header_end = content.find('## Session Log')
+    if header_end == -1:
+        return False
+
+    header = content[:header_end + len('## Session Log\n\n')]
+    session_content = content[header_end + len('## Session Log\n\n'):]
+
+    # Split into individual sessions (each starts with ### )
+    sessions = re.split(r'(?=### )', session_content)
+    sessions = [s for s in sessions if s.strip()]  # Remove empty
+
+    if len(sessions) <= keep_recent:
+        return False  # Not enough sessions to archive
+
+    # Split into recent (keep) and old (summarize)
+    recent_sessions = sessions[:keep_recent]
+    old_sessions = sessions[keep_recent:]
+
+    # Summarize old sessions with Gemini
+    from .extractor import Extractor
+    extractor = Extractor()
+
+    old_content = ''.join(old_sessions)
+    summary = extractor.summarize(old_content, max_tokens=300)
+
+    if not summary:
+        return False  # Summarization failed
+
+    # Check if there's already a historical summary section
+    historical_marker = "## Historical Summary"
+    existing_summary = ""
+    if historical_marker in header:
+        # Extract and append to existing summary
+        match = re.search(r'## Historical Summary\n(.*?)(?=\n## |\Z)', header, re.DOTALL)
+        if match:
+            existing_summary = match.group(1).strip() + "\n\n"
+            header = re.sub(r'## Historical Summary\n.*?(?=\n## |\Z)', '', header, flags=re.DOTALL)
+
+    # Build the new historical summary section
+    archived_count = len(old_sessions)
+    historical_section = f"""## Historical Summary
+
+_{archived_count} older sessions archived. Summary:_
+
+{existing_summary}{summary}
+
+"""
+
+    # Remove the "## Session Log" from header since we'll add it after historical
+    header = re.sub(r'## Session Log\n*$', '', header).rstrip() + '\n\n'
+
+    # Reconstruct the file
+    new_content = header + historical_section + "## Session Log\n\n" + ''.join(recent_sessions)
+
+    # Clean up any duplicate warnings or headers
+    new_content = re.sub(r'(## Session Log\n\n)+', '## Session Log\n\n', new_content)
+    new_content = re.sub(r'(\*\*⚠️[^\n]+\n(?:- [^\n]+\n)+\n)+', lambda m: m.group(0).split('\n\n')[0] + '\n\n', new_content)
+
+    notes_path.write_text(new_content)
+    return True
+
+
+def maybe_cleanup_notes(project_path: Path) -> None:
+    """Check if notes need cleanup and do it if so."""
+    notes_path = get_notes_path(project_path)
+    if not notes_path.exists():
+        return
+
+    content = notes_path.read_text()
+    lines = len(content.split('\n'))
+    session_count = content.count('### ')
+
+    if session_count > MAX_SESSIONS_BEFORE_CLEANUP or lines > MAX_LINES_BEFORE_CLEANUP:
+        cleanup_old_sessions(notes_path)
 
 
 def get_loose_threads(project_path: Path, limit: int = 5) -> list[str]:

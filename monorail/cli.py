@@ -449,10 +449,13 @@ def log(project: str):
 @main.command()
 @click.argument("project")
 def archive(project: str):
-    """[WIP] Archive old sessions for a project."""
+    """Archive old sessions for a project (summarizes old sessions with Gemini)."""
     from .notes import archive_sessions
-    if archive_sessions(project):
-        console.print(f"[yellow]Archive not yet implemented[/yellow] for {project}")
+    result = archive_sessions(project)
+    if result is True:
+        console.print(f"[green]✓[/green] Archived old sessions for {project}")
+    elif result is False:
+        console.print(f"[dim]No cleanup needed for {project} (not enough sessions)[/dim]")
     else:
         console.print(f"[red]Project not found:[/red] {project}")
 
