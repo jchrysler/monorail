@@ -2,7 +2,43 @@
 
 **Autosave for your coding sessions.** Keeps all your work on one track.
 
-When you start a new session, both codex and Claude will automatically what happened in your last one. 
+## Why Monorail?
+
+Every time you start a new Claude Code or Codex session, you lose context. You have to explain what you were working on, what's done, what's not. Monorail fixes this.
+
+**How it's different:**
+
+- **Zero tokens burned** — Uses Gemini Flash Lite (essentially free) instead of Claude/Codex tokens for extraction
+- **Fully async** — Runs as a background daemon, extracts notes while you work, never interrupts your flow
+- **Works with both tools** — Supports Claude Code and OpenAI Codex from the same daemon
+- **Git-aware** — Tracks commits between sessions so Claude knows what changed while you were away
+- **Auto-archival** — Old sessions get summarized automatically to keep context lean
+
+When you start a new session, Claude reads your notes and picks up exactly where you left off.
+
+## Install
+
+```bash
+pip install monorail-ai
+```
+
+That's it. Run from anywhere—no cloning, no virtual env required. The package is on PyPI.
+
+Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
+
+```bash
+pipx install monorail-ai
+```
+
+<details>
+<summary>Install from source (for development)</summary>
+
+```bash
+git clone https://github.com/jchrysler/monorail.git
+cd monorail
+pip install -e .
+```
+</details>
 
 ## Prerequisites
 
@@ -12,10 +48,6 @@ When you start a new session, both codex and Claude will automatically what happ
 ## Quick Start
 
 ```bash
-# Install
-pip install monorail-ai
-
-# Run from anywhere - it finds your projects automatically
 monorail init
 ```
 
@@ -25,25 +57,6 @@ The setup wizard will:
 3. Let you select which ones to track
 4. Set up each project with `CLAUDE.md` instructions
 5. Start the daemon
-
-Run it from any directory—it doesn't matter where.
-
-Or with [pipx](https://pipx.pypa.io/) (recommended for CLI tools):
-
-```bash
-pipx install monorail-ai && monorail init
-```
-
-<details>
-<summary>Install from source</summary>
-
-```bash
-git clone https://github.com/jchrysler/monorail.git
-cd monorail
-pip install -e .
-monorail init
-```
-</details>
 
 ## Verify It Works
 
@@ -181,17 +194,6 @@ extract_on:
   min_new_bytes: 500    # Extract after this much new content
   idle_seconds: 60      # Or after 1 minute idle (backup)
 ```
-
-## Why Monorail?
-
-| Without | With Monorail |
-|---------|---------------|
-| Manual handoff before clearing | Automatic, always running |
-| Burns Claude tokens on summaries | Uses cheap Gemini tokens |
-| Single session memory | Multi-session awareness |
-| Context lost on /clear | Extracted instantly on /clear |
-| Per-project setup | Zero config, auto-detects projects |
-| No idea what changed between sessions | Git tracking shows commits you missed |
 
 ## Architecture
 
